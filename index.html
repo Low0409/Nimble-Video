@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkyWay - P2P Media example</title>
+    <link rel="stylesheet" href="/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+
+  </head>
+  <body>
+    <div id="header">
+      <img src="images/logo.png" alt="" id="logo">
+    </div>
+    <div class="container">
+      <div class="p2p-media">
+        <div class="remote-stream">
+          <video id="js-remote-stream"></video>
+        </div>
+        <div class="local-stream">
+          <video id="js-local-stream"></video>
+        </div>
+      </div>
+<div id="text">
+  <p>Your ID: <span id="js-local-id"></span></p>
+  <input type="text" placeholder="相手のIDを入力してください。" id="js-remote-id">
+  <button id="js-call-trigger"><img src="images/call.svg" alt=""></button>
+  <button id="js-close-trigger"><img src="images/stopcall.svg" alt=""></button>
+<p class="meta" id="js-meta"></p>
+</div>
+
+<button id="start-btn">字幕起こしON</button>
+<button id="stop-btn">OFF</button>
+<div>
+  <ul id="list" style="overflow: auto; height: 300px"></ul>
+
+    <button id="send">送信</button>
+</div>
+
+
+    </div>
+    <script src="//cdn.webrtc.ecl.ntt.com/skyway-4.4.3.js"></script>
+    <script src="../_shared/key.js"></script>
+    <script src="./script.js"></script>
+    <link rel="stylesheet" href="https://fonts.google.com/icons?family=Material+Icons">
+
+    <script>
+      const startBtn = document.querySelector("#start-btn");
+      const stopBtn = document.querySelector("#stop-btn");
+
+      SpeechRecognition = webkitSpeechRecognition || SpeechRecognition;
+      let recognition = new SpeechRecognition();
+
+      recognition.lang = "ja-JP";
+      recognition.interimResults = true;
+      recognition.continuous = true;
+
+      let finalTranscript = ""; // 確定した(黒の)認識結果
+
+      recognition.onresult = (event) => {
+        event.preventDefault();
+        let interimTranscript = ""; // 暫定(灰色)の認識結果
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          let transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript = transcript;
+            document.getElementById("send").click();
+          } else {
+            interimTranscript = transcript;
+          }
+        }
+        resultDiv.innerHTML = finalTranscript;
+
+      };
+
+      startBtn.onclick = () => {
+        recognition.start();
+      };
+      stopBtn.onclick = () => {
+        recognition.stop();
+      };
+    </script>
+
+    <!-- 追加 -->
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        push,
+        set,
+        onChildAdded,
+        remove,
+        onChildRemoved,
+      } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js";
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyAPSukIMjPwJoZsL6k4qkP5UqkSnxqSzgk",
+        authDomain: "sample-b2b18.firebaseapp.com",
+        databaseURL: "https://sample-b2b18-default-rtdb.firebaseio.com",
+        projectId: "sample-b2b18",
+        storageBucket: "sample-b2b18.appspot.com",
+        messagingSenderId: "998148803729",
+        appId: "1:998148803729:web:27b6eae87dcc67d52d4330",
+      };
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      const dbRef = ref(db, "chat");
+
+
+
+      document.getElementById("send").addEventListener("click", function () {
+        //document.getElementById("check").addEventListener("change", function () {
+
+        const msg = {
+          uname: "taro",
+          text: finalTranscript,
+        };
+        const newPostRef = push(dbRef);
+        console.log(msg)
+        set(newPostRef, msg);
+      });
+
+
+      onChildAdded(dbRef, function (d) {
+        //const msg = d.val();
+        let list = document.getElementById("list");
+        let li = document.createElement("li");
+        li.innerHTML = `${d.val().text}【 @${d.val().uname} 】`;
+
+        list.appendChild(li);
+
+      });
+    </script>
+    <!-- 追加 -->
+  </body>
+</html>
